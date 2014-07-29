@@ -1,0 +1,10 @@
+{
+  "name": "owner",
+  "plural": "owners",
+  "base": "PersistedModel",
+  "properties": {},
+  "validations": [],
+  "relations": {},
+  "acls": [],
+  "methods": []
+}

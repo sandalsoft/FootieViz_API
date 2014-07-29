@@ -1,0 +1,25 @@
+{
+  "db": {
+    "name": "db",
+    "connector": "memory"
+  },
+  "footievizDS": {
+    "host": "footivizdev.c3hd4gvq8fyh.us-east-1.rds.amazonaws.com",
+    "port": 3306,
+    "database": "footieviz",
+    "username": "footiedb",
+    "password": "FOOTIEd33b33",
+    "name": "footievizDS",
+    "connector": "mysql"
+  },
+  "OwnerDS": {
+    "host": "ds053438.mongolab.com",
+    "port": 53438,
+    "database": "fantasiefootie",
+    "username": "footiedb",
+    "password": "FOOTIEd33b33",
+    "name": "ownerDS",
+    "connector": "mongodb",
+    "debug": true
+  }
+}
