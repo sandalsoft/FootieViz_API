@@ -1,11 +1,9 @@
-var request = require('requests');
 var mongoose = require('mongoose');
 var httpsync = require('httpsync');
 var config = require('./config')
-
 var http = require('http');
 var fs = require('fs');
-// var sleep = require('sleep');
+
 
 var PLAYER_DATA_URL = 'http://fantasy.premierleague.com/web/api/elements/';
 var FOOTIEVIZ_MONGO = 'mongodb://footiedb:FOOTIEd33b33@ds053438.mongolab.com:53438/fantasiefootie'
@@ -82,54 +80,30 @@ var Player = mongoose.model('Player', playerSchema);
 
 maxPlayerId = MAX_PLAYERS;
 
-// var playerExists = true;
-// do {
-//     maxPlayerUrl = PLAYER_DATA_URL + maxPlayerId + '/';
-//     console.log('getting : ' + maxPlayerUrl );
-//     var req = httpsync.get({ url : maxPlayerUrl});
-//     var res = req.end();
-//     if (res.statusCode === 404) {
-//       playerExists = false;
-//       MAX_PLAYERS = maxPlayerId - 1;
-//       break;
-//     }
-//     maxPlayerId++;
-//     sleep.sleep(1);
-// } while (playerExists);
 
 console.log('MAX_PLAYERS: ' + MAX_PLAYERS);
+var numPlayers = MAX_PLAYERS;
 
+// var urls = [];
+// for (var i = numPlayers - 1; i >= 1; i--) {
+//   var playerUrl = PLAYER_DATA_URL + i + '/';
+//   // console.log('playerUrl: ' + playerUrl);
+//   urls.push(playerUrl);
+// }
 
-function sleep(callback) {
-    var now = new Date().getTime();
-    while (new Date().getTime() < now + 3000) {
-        // do nothing
-    }
-    callback();
-}
-
-
-for (var i = MAX_PLAYERS; i >= 0; i--) {
-    sleep(function() {
-
-        var playerId = [i];
-        var playerUrl = PLAYER_DATA_URL + playerId + '/';
-        console.log('getting : ' + playerUrl);
-
-        http.get(playerUrl, function(res) {
-            var body = '';
-            res.on('data', function(chunk) {
-                body += chunk;
-                console.log(body);
-            });
-            res.on('end', function() {
-                console.log(body);
-            });
-        }).on('error', function(e) {
-            console.log("Got error: " + e.message);
-        });
-
-    });
+var responses = [];
+var completed_requests = 0;
+for (var i = MAX_PLAYERS - 1; i >= 1; i--) {
+  var id = i;
+  var playerUrl = PLAYER_DATA_URL + id + '/';
+  console.log('getting: ' + playerUrl);
+  var req = httpsync.get({ url : playerUrl});
+  var res = req.end();
+  var playerJson = JSON.parse(res.data);
+  var Player = mongoose.model('Player', playerSchema);
+  var player = new Player(playerJson);
+  player.save();
+  console.log('DONE : ' + playerJson.web_name);
 }
 
 
