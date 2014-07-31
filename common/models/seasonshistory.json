@@ -1,0 +1,90 @@
+{
+  "name": "seasonshistory",
+  "base": "PersistedModel",
+  "properties": {
+    "id": {
+      "type": "number",
+      "required": true
+    },
+    "season": {
+      "type": "string",
+      "required": true
+    },
+    "minutes_played": {
+      "type": "number",
+      "required": true
+    },
+    "goals_scored": {
+      "type": "number",
+      "required": true
+    },
+    "assists": {
+      "type": "number",
+      "required": true
+    },
+    "clean_sheets": {
+      "type": "number",
+      "required": true
+    },
+    "goals_conceded": {
+      "type": "number",
+      "required": true
+    },
+    "own_goals": {
+      "type": "number",
+      "required": true
+    },
+    "penalties_saved": {
+      "type": "number",
+      "required": true
+    },
+    "penalties_missed": {
+      "type": "number",
+      "required": true
+    },
+    "yellow_cards": {
+      "type": "number",
+      "required": true
+    },
+    "red_cards": {
+      "type": "number",
+      "required": true
+    },
+    "saves": {
+      "type": "number",
+      "required": true
+    },
+    "bonus": {
+      "type": "number",
+      "required": true
+    },
+    "ea_sports_ppi": {
+      "type": "number",
+      "required": true
+    },
+    "net_transfers": {
+      "type": "number",
+      "required": true
+    },
+    "value": {
+      "type": "number",
+      "required": true
+    },
+    "points": {
+      "type": "number",
+      "required": true
+    },
+    "player_id": {
+      "type": "number",
+      "required": true
+    },
+    "created_at": {
+      "type": "date",
+      "required": true
+    }
+  },
+  "validations": [],
+  "relations": {},
+  "acls": [],
+  "methods": []
+}

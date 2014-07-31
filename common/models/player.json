@@ -2,6 +2,11 @@
   "name": "player",
   "plural": "players",
   "base": "PersistedModel",
+  "options": {
+    "mysql": {
+      "table": "players"
+    }
+  },
   "properties": {
     "id": {
       "type": "number",
@@ -233,7 +238,18 @@
     }
   },
   "validations": [],
-  "relations": {},
+  "relations": {
+    "fixtures": {
+      "type": "hasMany",
+      "model": "fixture",
+      "foreignKey": "player_id"
+    },
+    "seasonshistory": {
+      "type": "hasMany",
+      "model": "seasonshistory",
+      "foreignKey": "player_id"
+    }
+  },
   "acls": [],
   "methods": []
 }

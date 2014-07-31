@@ -31,5 +31,13 @@
   "owner": {
     "dataSource": "OwnerDS",
     "public": true
+  },
+  "fixture": {
+    "dataSource": "footievizDS",
+    "public": true
+  },
+  "seasonshistory": {
+    "dataSource": "footievizDS",
+    "public": true
   }
 }
