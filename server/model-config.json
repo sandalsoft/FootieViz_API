@@ -24,20 +24,12 @@
     "dataSource": "db",
     "public": false
   },
-  "player": {
-    "dataSource": "footievizDS",
-    "public": true
-  },
   "owner": {
     "dataSource": "OwnerDS",
     "public": true
   },
-  "fixture": {
-    "dataSource": "footievizDS",
-    "public": true
-  },
-  "seasonshistory": {
-    "dataSource": "footievizDS",
+  "Player": {
+    "dataSource": "PlayerDS",
     "public": true
   }
 }

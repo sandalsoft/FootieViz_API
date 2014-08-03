@@ -3,15 +3,6 @@
     "name": "db",
     "connector": "memory"
   },
-  "footievizDS": {
-    "host": "footivizdev.c3hd4gvq8fyh.us-east-1.rds.amazonaws.com",
-    "port": 3306,
-    "database": "footieviz",
-    "username": "footiedb",
-    "password": "FOOTIEd33b33",
-    "name": "footievizDS",
-    "connector": "mysql"
-  },
   "OwnerDS": {
     "host": "ds053438.mongolab.com",
     "port": 53438,
@@ -20,6 +11,12 @@
     "password": "FOOTIEd33b33",
     "name": "OwnerDS",
     "connector": "mongodb",
+    "debug": true
+  },
+  "PlayerDS": {
+    "defaultForType": "mongodb",
+    "url": "mongodb://footiedb:FOOTIEd33b33@ds053438.mongolab.com:53438/fantasiefootie",
+    "connector": "loopback-connector-mongodb",
     "debug": true
   }
 }

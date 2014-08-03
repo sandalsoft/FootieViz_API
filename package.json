@@ -1,16 +1,28 @@
 {
-  "name": "FootieViz_API",
-  "version": "0.0.0",
-  "main": "server/server.js",
-  "dependencies": {
-    "compression": "^1.0.3",
-    "errorhandler": "^1.1.1",
-    "loopback": "^2.0.0",
-    "loopback-boot": "^2.0.0",
-    "loopback-datasource-juggler": "^2.0.0",
-    "serve-favicon": "^2.0.1"
+  "name": "fetch_data",
+  "version": "0.0.1",
+  "description": "Fetches FPS data",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "optionalDependencies": {
-    "loopback-explorer": "^1.1.0"
-  }
+  "author": "@sandalsoft",
+  "license": "Proprietary for now",
+  "dependencies": {
+    "mongodb": "^1.4.7",
+    "mongoose": "^3.8.14",
+    "requests": "^0.0.1"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sandalsoft/FootieViz_API.git"
+  },
+  "keywords": [
+    "epl"
+  ],
+  "bugs": {
+    "url": "https://github.com/sandalsoft/FootieViz_API/issues"
+  },
+  "homepage": "https://github.com/sandalsoft/FootieViz_API"
 }
