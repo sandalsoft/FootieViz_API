@@ -2,7 +2,7 @@ var httpSync = require('http-sync');
 var httpsync = require('httpsync');
 
 var PLAYER_DATA_URL = 'http://fantasy.premierleague.com/web/api/elements/';
-var STARTING_ID = 575;
+var STARTING_ID = 577;
 
 module.exports = {
     dropPlayerRecords: function(callbackFunc) {

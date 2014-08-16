@@ -1,4 +1,5 @@
 var mongoose = require('mongoose');
+var request = require('request');
 var httpsync = require('httpsync');
 var httpSync = require('http-sync');
 var config = require('./config')
@@ -96,74 +97,45 @@ for (var i = MAX_PLAYERS - 1; i >= 1; i--) {
     var playerUrl = PLAYER_DATA_URL + id + '/';
     // console.log('getting: ' + playerUrl);
 
-    var req = httpsync.get({
-        url: playerUrl
+    request(playerUrl, function(error, response, body) {
+        var player_id = id;
+        if (!error && response.statusCode == 200) {
+            console.log('id: ' + player_id);
+            // process.kill();
+            var playerJson = JSON.parse(body);
+            var Player = mongoose.model('Player', playerSchema);
+            var player = new Player(playerJson);
+            player.fixtures.summary = playerJson.fixtures.summary;
+            player.fixtures.all = playerJson.fixtures.all;
+            player.fixture_history.summary = playerJson.fixture_history.summary;
+            player.fixture_history.all = playerJson.fixture_history.all;
+            player.markModified('fixtures');
+            player.markModified('fixture_history');
+            player.player_id = player_id;
+            var query = {
+                player_id: player.player_id
+            };
+
+            player.save(function(err) {
+                 if (err){
+                    console.log('Error saving: ' + player.player_id + '-' + player.web_name);
+                 }
+                 else {
+                    console.log('Saved: ' + player.player_id + '-' + player.web_name);
+                 }
+            });
+            // Player.findOneAndUpdate(query, player, {upsert: true}, function(err, doc) {
+            //     if (err) {
+            //         console.log('ERROR SAVING : ' + player.player_id);
+            //         console.log('err: ' + err);
+            //     }
+            //     else {
+            //     console.log('Saved: ' + doc.web_name);
+            //     }
+            // });
+
+
+            console.log('GOT : ' + player.player_id + '-' + player.web_name);
+        }
     });
-    var res = req.end();
-    if (res.statusCode === 200) {
-        var playerJson = JSON.parse(res.data);
-        var Player = mongoose.model('Player', playerSchema);
-
-        var player = new Player(playerJson);
-
-        // var history = [];
-        // history = playerJson.season_history;
-        // console.log('playerJson.season_history: ' + JSON.stringify(playerJson.season_history));
-        // for (var i = history.length - 1; i >= 0; i--) {
-        //   var season = {};
-        //   var season_data = history[i];
-        //   season.year = season_data[0];
-        //   season.minutes_played = season_data[1];
-        //   season.goals_scored = season_data[2];
-        //   season.assists = season_data[3];
-        //   season.clean_sheets = season_data[4];
-        //   season.goals_conceded = season_data[5];
-        //   season.own_goals = season_data[6];
-        //   season.penalties_saved = season_data[7];
-        //   season.penalties_missed = season_data[8]
-        //   season.yellow_cards = season_data[9];
-        //   season.red_cards = season_data[10];
-        //   season.saves = season_data[11];
-        //   season.bonus = season_data[12];
-        //   season.ea_sports_ppi = season_data[13];
-        //   season.net_transfers = season_data[14];
-        //   season.value = season_data[15];
-        //   season.points = season_data[16];
-
-        //   player.season_history.push(season);
-        // }
-
-        player.fixtures.summary = playerJson.fixtures.summary;
-        player.fixtures.all = playerJson.fixtures.all;
-        player.fixture_history.summary = playerJson.fixture_history.summary;
-        player.fixture_history.all = playerJson.fixture_history.all;
-        player.markModified('fixtures');
-        player.markModified('fixture_history');
-        player.player_id = id;
-
-
-        var query = {'player_id':id};
-        Player.findOneAndUpdate(query, player, {upsert:true}, function(err, doc){
-            if (err) {
-                console.log('err saving: ' + err);
-            }
-            console.log('Saved: ' + player.web_name);
-        });
-
-        // player.save(function(err) {
-        //     if (err) {
-        //         console.log('ERROR SAVING: ' + player)
-        //     } else {
-        //         console.log('SAVED!');
-        //     }
-        // });
-        console.log('GOT : ' + id + '-' + player.web_name);
-    }
-};
-
-
-
-var findMaxPlayer = function(id) {
-    var startingNumber = 571;
-
 }
