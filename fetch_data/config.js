@@ -1,3 +1,3 @@
 var config = {}
-config.maxPlayers =547;  
+config.maxPlayers =571;  
 module.exports = config;

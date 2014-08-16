@@ -1,17 +1,21 @@
 var mongoose = require('mongoose');
 var httpsync = require('httpsync');
+var httpSync = require('http-sync');
 var config = require('./config')
 var fs = require('fs');
+var fpl = require('./fpl');
 
 
 var PLAYER_DATA_URL = 'http://fantasy.premierleague.com/web/api/elements/';
 var FOOTIEVIZ_MONGO = 'mongodb://footiedb:FOOTIEd33b33@ds053438.mongolab.com:53438/fantasiefootie';
-var MAX_PLAYERS = config.maxPlayers;
+// var MAX_PLAYERS = config.maxPlayers;
 
 mongoose.connect(FOOTIEVIZ_MONGO);
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function callback() {});
+
+
 
 var playerSchema = mongoose.Schema({
     player_id: Number,
@@ -74,78 +78,92 @@ var playerSchema = mongoose.Schema({
     current_fixture_is_home: Boolean,
     current_fixture_team_id: Number,
     created_at: Date
+}, {
+    collection: 'Player'
 });
 
 var Player = mongoose.model('Player', playerSchema);
+var MAX_PLAYERS = 0;
 
-maxPlayerId = MAX_PLAYERS;
-
-
-console.log('MAX_PLAYERS: ' + MAX_PLAYERS);
-var numPlayers = MAX_PLAYERS;
+fpl.getMaxPlayerId(function(id) {
+    console.log('MAX_PLAYERS: ' + id);
+    MAX_PLAYERS = id;
+})
 
 
 for (var i = MAX_PLAYERS - 1; i >= 1; i--) {
-  var id = i;
-  var playerUrl = PLAYER_DATA_URL + id + '/';
-  // console.log('getting: ' + playerUrl);
-  var req = httpsync.get({ url : playerUrl});
-  var res = req.end();
-  if (res.statusCode === 200) {
-    var playerJson = JSON.parse(res.data);
-    var Player = mongoose.model('Player', playerSchema);
+    var id = i;
+    var playerUrl = PLAYER_DATA_URL + id + '/';
+    // console.log('getting: ' + playerUrl);
 
-    var player = new Player(playerJson);
+    var req = httpsync.get({
+        url: playerUrl
+    });
+    var res = req.end();
+    if (res.statusCode === 200) {
+        var playerJson = JSON.parse(res.data);
+        var Player = mongoose.model('Player', playerSchema);
 
-    // var history = [];
-    // history = playerJson.season_history;
-    // console.log('playerJson.season_history: ' + JSON.stringify(playerJson.season_history));
-    // for (var i = history.length - 1; i >= 0; i--) {
-    //   var season = {};
-    //   var season_data = history[i];
-    //   season.year = season_data[0];
-    //   season.minutes_played = season_data[1];
-    //   season.goals_scored = season_data[2];
-    //   season.assists = season_data[3];
-    //   season.clean_sheets = season_data[4];
-    //   season.goals_conceded = season_data[5];
-    //   season.own_goals = season_data[6];
-    //   season.penalties_saved = season_data[7];
-    //   season.penalties_missed = season_data[8]
-    //   season.yellow_cards = season_data[9];
-    //   season.red_cards = season_data[10];
-    //   season.saves = season_data[11];
-    //   season.bonus = season_data[12];
-    //   season.ea_sports_ppi = season_data[13];
-    //   season.net_transfers = season_data[14];
-    //   season.value = season_data[15];
-    //   season.points = season_data[16];
+        var player = new Player(playerJson);
 
-    //   player.season_history.push(season);
-    // }
+        // var history = [];
+        // history = playerJson.season_history;
+        // console.log('playerJson.season_history: ' + JSON.stringify(playerJson.season_history));
+        // for (var i = history.length - 1; i >= 0; i--) {
+        //   var season = {};
+        //   var season_data = history[i];
+        //   season.year = season_data[0];
+        //   season.minutes_played = season_data[1];
+        //   season.goals_scored = season_data[2];
+        //   season.assists = season_data[3];
+        //   season.clean_sheets = season_data[4];
+        //   season.goals_conceded = season_data[5];
+        //   season.own_goals = season_data[6];
+        //   season.penalties_saved = season_data[7];
+        //   season.penalties_missed = season_data[8]
+        //   season.yellow_cards = season_data[9];
+        //   season.red_cards = season_data[10];
+        //   season.saves = season_data[11];
+        //   season.bonus = season_data[12];
+        //   season.ea_sports_ppi = season_data[13];
+        //   season.net_transfers = season_data[14];
+        //   season.value = season_data[15];
+        //   season.points = season_data[16];
 
-    player.fixtures.summary = playerJson.fixtures.summary;
-    player.fixtures.all = playerJson.fixtures.all;
-    player.fixture_history.summary = playerJson.fixture_history.summary;
-    player.fixture_history.all = playerJson.fixture_history.all;
-    player.markModified('fixtures');
-    player.markModified('fixture_history');
-    player.player_id = id;
+        //   player.season_history.push(season);
+        // }
 
-    // console.log('player: ' + player);
-    player.save();
-    console.log('DONE : ' + id + '-' + player.web_name);
-  }
+        player.fixtures.summary = playerJson.fixtures.summary;
+        player.fixtures.all = playerJson.fixtures.all;
+        player.fixture_history.summary = playerJson.fixture_history.summary;
+        player.fixture_history.all = playerJson.fixture_history.all;
+        player.markModified('fixtures');
+        player.markModified('fixture_history');
+        player.player_id = id;
+
+
+        var query = {'player_id':id};
+        Player.findOneAndUpdate(query, player, {upsert:true}, function(err, doc){
+            if (err) {
+                console.log('err saving: ' + err);
+            }
+            console.log('Saved: ' + player.web_name);
+        });
+
+        // player.save(function(err) {
+        //     if (err) {
+        //         console.log('ERROR SAVING: ' + player)
+        //     } else {
+        //         console.log('SAVED!');
+        //     }
+        // });
+        console.log('GOT : ' + id + '-' + player.web_name);
+    }
 };
 
 
 
-var saveMaxPlayer = function(id) {
-    var content = 'var config = {}\n' +
-        'config.maxPlayers = ' +
-        id + '\n' +
-        'module.exports = config;';
+var findMaxPlayer = function(id) {
+    var startingNumber = 571;
 
-
-    fs.writeFileSync(file, content, 'utf8');
 }
