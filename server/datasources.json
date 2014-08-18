@@ -8,14 +8,14 @@
     "port": 53438,
     "database": "fantasiefootie",
     "username": "footiedb",
-    "password": "FOOTIEd33b33",
+    "password": "tightbody",
     "name": "OwnerDS",
     "connector": "mongodb",
     "debug": true
   },
   "PlayerDS": {
     "defaultForType": "mongodb",
-    "url": "mongodb://footiedb:FOOTIEd33b33@ds053438.mongolab.com:53438/fantasiefootie",
+    "url": "mongodb://footiedb_ro:lovelybigtits@ds053438.mongolab.com:53438/fantasiefootie",
     "connector": "loopback-connector-mongodb",
     "debug": true
   }

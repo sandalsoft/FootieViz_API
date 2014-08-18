@@ -1,22 +1,27 @@
 var mongoose = require('mongoose');
 var request = require('request');
-var httpsync = require('httpsync');
-var httpSync = require('http-sync');
-var config = require('./config')
-var fs = require('fs');
 var fpl = require('./fpl');
+var async = require('async');
+var _ = require('underscore');
 
+var dbUser = 'footiedb';
+var dbPassword = process.env.FOOTIEVIZ_MONGO_PASSWORD
+var dbDatabase = 'fantasiefootie';
 
 var PLAYER_DATA_URL = 'http://fantasy.premierleague.com/web/api/elements/';
-var FOOTIEVIZ_MONGO = 'mongodb://footiedb:FOOTIEd33b33@ds053438.mongolab.com:53438/fantasiefootie';
-// var MAX_PLAYERS = config.maxPlayers;
+var FOOTIEVIZ_MONGO = 'mongodb://' + dbUser + ':' + dbPassword + '@ds053438.mongolab.com:53438/' + dbDatabase;
+
+console.log('Setting up Mongolab connection');
 
 mongoose.connect(FOOTIEVIZ_MONGO);
 var db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
+db.on('error', function(err) { 
+  console.error('DB Connection Error: ' + err); 
+  process.kill();    
+});
+
+
 db.once('open', function callback() {});
-
-
 
 var playerSchema = mongoose.Schema({
     _id: String,
@@ -79,57 +84,73 @@ var playerSchema = mongoose.Schema({
     team: Number,
     current_fixture_is_home: Boolean,
     current_fixture_team_id: Number,
-    created_at: Date
-}, {
-    collection: 'Player'
-});
-
+    last_updated: Date
+}, {collection: 'Player'});
 var Player = mongoose.model('Player', playerSchema);
-var MAX_PLAYERS = 0;
+
+
+var totalPlayers = 0;
 
 fpl.getMaxPlayerId(function(id) {
-    console.log('MAX_PLAYERS: ' + id);
-    MAX_PLAYERS = id;
+    totalPlayers = id;
 });
 
+// Create array of player IDs to loop through and grab data
+var playerIdsArray = _.range(1, totalPlayers);
 
+// Dispatch async workers to fetch data for each playerID in array
+async.each(playerIdsArray, function(player_id, callback) {
+  var playerUrl = PLAYER_DATA_URL + player_id + '/';
 
-for (var i = MAX_PLAYERS - 1; i >= 1; i--) {
-    (function(i) { //  This is needed to keep i in scope. See http://blog.mixu.net/2011/02/03/javascript-node-js-and-for-loops/
+  // GET player JSON from premierleague.com API
+  request(playerUrl, function(error, response, body) {
+    console.log('Requesting data for: ' + player_id);
+    if (!error && response.statusCode == 200) {
+      
+      // Parse json into object
+      var playerJson = JSON.parse(body);
+      console.log('Received data for: ' + playerJson.id + '-' + playerJson.web_name);
 
-        var player_id = i;
-        var playerUrl = PLAYER_DATA_URL + player_id + '/';
-        // console.log('befor req getting: ' + player_id);
+      // create Player model from schema
+      var Player = mongoose.model('Player', playerSchema);
 
-        request(playerUrl, function(error, response, body) {
-            // console.log('IN for req getting: ' + player_id);
-            if (!error && response.statusCode == 200) {
-                var playerJson = JSON.parse(body);
-                var Player = mongoose.model('Player', playerSchema);
-                var player = new Player(playerJson);
-                player.fixtures.summary = playerJson.fixtures.summary;
-                player.fixtures.all = playerJson.fixtures.all;
-                player.fixture_history.summary = playerJson.fixture_history.summary;
-                player.fixture_history.all = playerJson.fixture_history.all;
-                player.player_id = player_id;
-                var query = {
-                    'player_id': player.player_id
-                };
+      // Instantiace concrete player with data from API
+      var player = new Player(playerJson);
 
-                // UPDATE
-                // delete player['_id'];
-                Player.update({
-                    player_id: player_id
-                }, player.toObject(), {
-                    upsert: true
-                }, function(err, doc) {
-                    if (err)
-                        console.log('ERROR UPDATING : ' + player._id + ' err: ' + err);
-                    else
-                        console.log('UPDATED: ' + player.web_name);
-                });
-                console.log('DATA FOR : ' + player.player_id + '-' + player.web_name);
-            } // if 200 && no error
-        }); //request
-    })(i);
-} //for loop
+      // create embedded data in player record
+      player.fixtures.summary = playerJson.fixtures.summary;
+      player.fixtures.all = playerJson.fixtures.all;
+      player.fixture_history.summary = playerJson.fixture_history.summary;
+      player.fixture_history.all = playerJson.fixture_history.all;
+      player.player_id = player_id;
+      player.last_updated = Date.now();
+
+      // Query to find player by player_id so we can update it
+      var query = { 'player_id': player.player_id };
+
+      // Update Player record with data from API
+      Player.update({player_id: player_id}, player.toObject(), {upsert: true}, 
+        function(err, doc) {
+          if (err)
+            // log error if can't write data to database
+            console.log('ERROR UPDATING : ' + player._id + ' err: ' + err);
+          else {
+            console.log('Updated record for: ' + player.web_name);
+            callback();
+          }
+      }); //Player.update()
+    } // if 200 && no error
+  }); //request
+}, function(err) {
+ if( err ) {
+      // One of the iterations produced an error.  All processing will now stop.
+      console.log('A player failed to process');
+    } else {
+      // No errors.  Processing done.  Close db and end process
+      console.log('All players have been processed successfully');
+      db.close();
+      process.kill();
+    }
+}); // function(err) end of async.each
+ 
+
