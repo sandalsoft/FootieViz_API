@@ -19,6 +19,7 @@ db.once('open', function callback() {});
 
 
 var playerSchema = mongoose.Schema({
+    // _id: Number,
     player_id: Number,
     photo: String,
     fixture_history: mongoose.Schema.Types.Mixed,
@@ -85,57 +86,70 @@ var playerSchema = mongoose.Schema({
 
 var Player = mongoose.model('Player', playerSchema);
 var MAX_PLAYERS = 0;
+fpl.dropPlayerRecords(function(statusCode) {
+    if (statusCode !== 200) {
+        console.log('Error dropping records!');
+    }
+    else {
+        console.log('Database cleaned!');
+    }
+});
 
 fpl.getMaxPlayerId(function(id) {
     console.log('MAX_PLAYERS: ' + id);
-    MAX_PLAYERS = id;
-})
+    MAX_PLAYERS = 5;
+});
+
 
 
 for (var i = MAX_PLAYERS - 1; i >= 1; i--) {
-    var id = i;
-    var playerUrl = PLAYER_DATA_URL + id + '/';
-    // console.log('getting: ' + playerUrl);
+    (function(i) {
 
-    request(playerUrl, function(error, response, body) {
-        var player_id = id;
-        if (!error && response.statusCode == 200) {
-            console.log('id: ' + player_id);
-            // process.kill();
-            var playerJson = JSON.parse(body);
-            var Player = mongoose.model('Player', playerSchema);
-            var player = new Player(playerJson);
-            player.fixtures.summary = playerJson.fixtures.summary;
-            player.fixtures.all = playerJson.fixtures.all;
-            player.fixture_history.summary = playerJson.fixture_history.summary;
-            player.fixture_history.all = playerJson.fixture_history.all;
-            player.markModified('fixtures');
-            player.markModified('fixture_history');
-            player.player_id = player_id;
-            var query = {
-                player_id: player.player_id
-            };
+        var id = i;
+        var playerUrl = PLAYER_DATA_URL + id + '/';
+        // console.log('befor req getting: ' + id);
 
-            player.save(function(err) {
-                 if (err){
-                    console.log('Error saving: ' + player.player_id + '-' + player.web_name);
-                 }
-                 else {
-                    console.log('Saved: ' + player.player_id + '-' + player.web_name);
-                 }
-            });
-            // Player.findOneAndUpdate(query, player, {upsert: true}, function(err, doc) {
-            //     if (err) {
-            //         console.log('ERROR SAVING : ' + player.player_id);
-            //         console.log('err: ' + err);
-            //     }
-            //     else {
-            //     console.log('Saved: ' + doc.web_name);
-            //     }
-            // });
+        request(playerUrl, function(error, response, body) {
+            // console.log('IN for req getting: ' + id);
+            var player_id = id;
+            if (!error && response.statusCode == 200) {
+                console.log('id: ' + player_id);
+                // process.kill();
+                var playerJson = JSON.parse(body);
+                var Player = mongoose.model('Player', playerSchema);
+                var player = new Player(playerJson);
+                player.fixtures.summary = playerJson.fixtures.summary;
+                player.fixtures.all = playerJson.fixtures.all;
+                player.fixture_history.summary = playerJson.fixture_history.summary;
+                player.fixture_history.all = playerJson.fixture_history.all;
+                // player.markModified('fixtures');
+                // player.markModified('fixture_history');
+                // player.player_id = player_id;
+                // player._id = player_id;
+                var query = {
+                    player_id: player.player_id
+                };
+
+                player.save(function(err) {
+                    if (err) {
+                        console.log('Error saving: ' + player.player_id + '-' + player.web_name);
+                    } else {
+                        console.log('Saved: ' + player.player_id + '-' + player.web_name);
+                    }
+                });
+                // Player.findOneAndUpdate(query, player, {upsert: true}, function(err, doc) {
+                //     if (err) {
+                //         console.log('ERROR SAVING : ' + player.player_id);
+                //         console.log('err: ' + err);
+                //     }
+                //     else {
+                //     console.log('Saved: ' + doc.web_name);
+                //     }
+                // });
 
 
-            console.log('GOT : ' + player.player_id + '-' + player.web_name);
-        }
-    });
-}
+                console.log('GOT : ' + player.player_id + '-' + player.web_name);
+            }
+        }); //request
+    })(i);
+} //for loop
