@@ -19,7 +19,7 @@ db.once('open', function callback() {});
 
 
 var playerSchema = mongoose.Schema({
-    // _id: Number,
+    _id: String,
     player_id: Number,
     photo: String,
     fixture_history: mongoose.Schema.Types.Mixed,
@@ -86,19 +86,24 @@ var playerSchema = mongoose.Schema({
 
 var Player = mongoose.model('Player', playerSchema);
 var MAX_PLAYERS = 0;
-fpl.dropPlayerRecords(function(statusCode) {
-    if (statusCode !== 200) {
-        console.log('Error dropping records!');
-        process.kill();
-    }
-    else {
-        console.log('Database cleaned!');
-    }
-});
+
+// DONT NEED THIS BECUASE I'm UPDATE RECORDS.
+// I'm UPDATING RECORDS BECAUSE IDs NEED TO STAY THE SAME
+//   IN ORDER TO KEEP TRACK OF PLAYERS ON YOUR TEAM
+//   
+// fpl.dropPlayerRecords(function(statusCode) {
+//     if (statusCode !== 200) {
+//         console.log('Error dropping records!');
+//         process.kill();
+//     }
+//     else {
+//         console.log('Database cleaned!');
+//     }
+// });
 
 fpl.getMaxPlayerId(function(id) {
     console.log('MAX_PLAYERS: ' + id);
-    MAX_PLAYERS = 5; //id
+    MAX_PLAYERS = id;
 });
 
 
@@ -126,23 +131,39 @@ for (var i = MAX_PLAYERS - 1; i >= 1; i--) {
                 // player.player_id = player_id;
                 player.player_id = player_id;
                 var query = {
-                    player_id: player.player_id
+                    'player_id': player.player_id
                 };
 
-                player.save(function(err) {
-                    if (err) {
-                        console.log('Error saving: ' + player.player_id + '-' + player.web_name);
-                    } else {
-                        console.log('Saved: ' + player.player_id + '-' + player.web_name);
-                    }
-                });
+            // SAVE
+                // player.save(function(err) {
+                //     if (err) {
+                //         console.log('Error saving: ' + player.player_id + '-' + player.web_name);
+                //     } else {
+                //         console.log('Saved: ' + player.player_id + '-' + player.web_name);
+                //     }
+                // });
+
+              // UPDATE
+                    // delete player['_id'];
+                    Player.update({player_id: player_id}, player.toObject(), {upsert: true}, function(err, doc) {
+                        if (err) {
+                            console.log('ERROR UPDATING : ' + player._id);
+                            console.log('err: ' + err);
+                        }
+                        else {
+                            console.log('UPDATED: ' + player.web_name);
+                        }
+                    });
+
+
+              // UPSERT  
                 // Player.findOneAndUpdate(query, player, {upsert: true}, function(err, doc) {
                 //     if (err) {
-                //         console.log('ERROR SAVING : ' + player.player_id);
+                //         console.log('ERROR SAVING : ' + player._id);
                 //         console.log('err: ' + err);
                 //     }
                 //     else {
-                //     console.log('Saved: ' + doc.web_name);
+                //     console.log('Upserted: ' + doc.web_name);
                 //     }
                 // });
 
