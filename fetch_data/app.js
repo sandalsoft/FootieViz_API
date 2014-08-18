@@ -87,20 +87,6 @@ var playerSchema = mongoose.Schema({
 var Player = mongoose.model('Player', playerSchema);
 var MAX_PLAYERS = 0;
 
-// DONT NEED THIS BECUASE I'm UPDATE RECORDS.
-// I'm UPDATING RECORDS BECAUSE IDs NEED TO STAY THE SAME
-//   IN ORDER TO KEEP TRACK OF PLAYERS ON YOUR TEAM
-//   
-// fpl.dropPlayerRecords(function(statusCode) {
-//     if (statusCode !== 200) {
-//         console.log('Error dropping records!');
-//         process.kill();
-//     }
-//     else {
-//         console.log('Database cleaned!');
-//     }
-// });
-
 fpl.getMaxPlayerId(function(id) {
     console.log('MAX_PLAYERS: ' + id);
     MAX_PLAYERS = id;
@@ -118,7 +104,6 @@ for (var i = MAX_PLAYERS - 1; i >= 1; i--) {
         request(playerUrl, function(error, response, body) {
             // console.log('IN for req getting: ' + player_id);
             if (!error && response.statusCode == 200) {
-                // process.kill();
                 var playerJson = JSON.parse(body);
                 var Player = mongoose.model('Player', playerSchema);
                 var player = new Player(playerJson);
@@ -126,50 +111,25 @@ for (var i = MAX_PLAYERS - 1; i >= 1; i--) {
                 player.fixtures.all = playerJson.fixtures.all;
                 player.fixture_history.summary = playerJson.fixture_history.summary;
                 player.fixture_history.all = playerJson.fixture_history.all;
-                // player.markModified('fixtures');
-                // player.markModified('fixture_history');
-                // player.player_id = player_id;
                 player.player_id = player_id;
                 var query = {
                     'player_id': player.player_id
                 };
 
-            // SAVE
-                // player.save(function(err) {
-                //     if (err) {
-                //         console.log('Error saving: ' + player.player_id + '-' + player.web_name);
-                //     } else {
-                //         console.log('Saved: ' + player.player_id + '-' + player.web_name);
-                //     }
-                // });
-
-              // UPDATE
-                    // delete player['_id'];
-                    Player.update({player_id: player_id}, player.toObject(), {upsert: true}, function(err, doc) {
-                        if (err) {
-                            console.log('ERROR UPDATING : ' + player._id);
-                            console.log('err: ' + err);
-                        }
-                        else {
-                            console.log('UPDATED: ' + player.web_name);
-                        }
-                    });
-
-
-              // UPSERT  
-                // Player.findOneAndUpdate(query, player, {upsert: true}, function(err, doc) {
-                //     if (err) {
-                //         console.log('ERROR SAVING : ' + player._id);
-                //         console.log('err: ' + err);
-                //     }
-                //     else {
-                //     console.log('Upserted: ' + doc.web_name);
-                //     }
-                // });
-
-
-                console.log('GOT : ' + player.player_id + '-' + player.web_name);
-            }
+                // UPDATE
+                // delete player['_id'];
+                Player.update({
+                    player_id: player_id
+                }, player.toObject(), {
+                    upsert: true
+                }, function(err, doc) {
+                    if (err)
+                        console.log('ERROR UPDATING : ' + player._id + ' err: ' + err);
+                    else
+                        console.log('UPDATED: ' + player.web_name);
+                });
+                console.log('DATA FOR : ' + player.player_id + '-' + player.web_name);
+            } // if 200 && no error
         }); //request
     })(i);
 } //for loop
