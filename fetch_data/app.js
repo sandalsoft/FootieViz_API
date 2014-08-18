@@ -9,8 +9,8 @@ var fpl = require('./fpl');
 
 var PLAYER_DATA_URL = 'http://fantasy.premierleague.com/web/api/elements/';
 var FOOTIEVIZ_MONGO = 'mongodb://footiedb:FOOTIEd33b33@ds053438.mongolab.com:53438/fantasiefootie';
-// var MAX_PLAYERS = config.maxPlayers;
 
+console.log('Setting up Mongolab connection');
 mongoose.connect(FOOTIEVIZ_MONGO);
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
@@ -80,56 +80,53 @@ var playerSchema = mongoose.Schema({
     current_fixture_is_home: Boolean,
     current_fixture_team_id: Number,
     created_at: Date
-}, {
-    collection: 'Player'
-});
+}, {collection: 'Player'});
 
 var Player = mongoose.model('Player', playerSchema);
-var MAX_PLAYERS = 0;
 
-fpl.getMaxPlayerId(function(id) {
-    console.log('MAX_PLAYERS: ' + id);
-    MAX_PLAYERS = id;
+player_id = 1;
+var totalInserted = fetchPlayerData(player_id, function(totalPlayers) {
+  console.log('Inserted: ' + totalPlayers);
 });
 
 
+function fetchPlayerData(player_id) {
+  var playerUrl = PLAYER_DATA_URL + player_id + '/';
+  
 
-for (var i = MAX_PLAYERS - 1; i >= 1; i--) {
-    (function(i) { //  This is needed to keep i in scope. See http://blog.mixu.net/2011/02/03/javascript-node-js-and-for-loops/
+  request(playerUrl, function(error, response, body) {
+    console.log('Requesting data for: ' + player_id);
+    // Return when you hit the end of player IDs
+    if (response.statusCode == 400)
+      return player_id;
 
-        var player_id = i;
-        var playerUrl = PLAYER_DATA_URL + player_id + '/';
-        // console.log('befor req getting: ' + player_id);
+    if (!error && response.statusCode == 200) {
+      
+      var playerJson = JSON.parse(body);
+      var Player = mongoose.model('Player', playerSchema);
+      var player = new Player(playerJson);
+      player.fixtures.summary = playerJson.fixtures.summary;
+      player.fixtures.all = playerJson.fixtures.all;
+      player.fixture_history.summary = playerJson.fixture_history.summary;
+      player.fixture_history.all = playerJson.fixture_history.all;
+      player.player_id = player_id;
 
-        request(playerUrl, function(error, response, body) {
-            // console.log('IN for req getting: ' + player_id);
-            if (!error && response.statusCode == 200) {
-                var playerJson = JSON.parse(body);
-                var Player = mongoose.model('Player', playerSchema);
-                var player = new Player(playerJson);
-                player.fixtures.summary = playerJson.fixtures.summary;
-                player.fixtures.all = playerJson.fixtures.all;
-                player.fixture_history.summary = playerJson.fixture_history.summary;
-                player.fixture_history.all = playerJson.fixture_history.all;
-                player.player_id = player_id;
-                var query = {
-                    'player_id': player.player_id
-                };
+      console.log('GOT DATA FOR : ' + player.player_id + '-' + player.web_name);
+      
+      var query = { 'player_id': player.player_id };
 
-                // UPDATE
-                // delete player['_id'];
-                Player.update({
-                    player_id: player_id
-                }, player.toObject(), {
-                    upsert: true
-                }, function(err, doc) {
-                    if (err)
-                        console.log('ERROR UPDATING : ' + player._id + ' err: ' + err);
-                    else
-                        console.log('UPDATED: ' + player.web_name);
-                });
-                console.log('DATA FOR : ' + player.player_id + '-' + player.web_name);
-            } // if 200 && no error
-        }); //request
-    })(i);
-} //for loop
+      // Update Player stats and recurse if no error
+      Player.update({player_id: player_id}, player.toObject(), {upsert: true}, 
+        function(err, doc) {
+          if (err)
+            console.log('ERROR UPDATING : ' + player._id + ' err: ' + err);
+          else {
+            console.log('UPDATED: ' + player.web_name);
+            fetchPlayerData(player_id + 1);
+          }
+      }); //Player.update()
+    } // if 200 && no error
+  }); //request
+}
+
+
