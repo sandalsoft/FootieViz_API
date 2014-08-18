@@ -89,6 +89,7 @@ var MAX_PLAYERS = 0;
 fpl.dropPlayerRecords(function(statusCode) {
     if (statusCode !== 200) {
         console.log('Error dropping records!');
+        process.kill();
     }
     else {
         console.log('Database cleaned!');
@@ -97,23 +98,21 @@ fpl.dropPlayerRecords(function(statusCode) {
 
 fpl.getMaxPlayerId(function(id) {
     console.log('MAX_PLAYERS: ' + id);
-    MAX_PLAYERS = 5;
+    MAX_PLAYERS = 5; //id
 });
 
 
 
 for (var i = MAX_PLAYERS - 1; i >= 1; i--) {
-    (function(i) {
+    (function(i) { //  This is needed to keep i in scope. See http://blog.mixu.net/2011/02/03/javascript-node-js-and-for-loops/
 
-        var id = i;
-        var playerUrl = PLAYER_DATA_URL + id + '/';
-        // console.log('befor req getting: ' + id);
+        var player_id = i;
+        var playerUrl = PLAYER_DATA_URL + player_id + '/';
+        // console.log('befor req getting: ' + player_id);
 
         request(playerUrl, function(error, response, body) {
-            // console.log('IN for req getting: ' + id);
-            var player_id = id;
+            // console.log('IN for req getting: ' + player_id);
             if (!error && response.statusCode == 200) {
-                console.log('id: ' + player_id);
                 // process.kill();
                 var playerJson = JSON.parse(body);
                 var Player = mongoose.model('Player', playerSchema);
@@ -125,7 +124,7 @@ for (var i = MAX_PLAYERS - 1; i >= 1; i--) {
                 // player.markModified('fixtures');
                 // player.markModified('fixture_history');
                 // player.player_id = player_id;
-                // player._id = player_id;
+                player.player_id = player_id;
                 var query = {
                     player_id: player.player_id
                 };
