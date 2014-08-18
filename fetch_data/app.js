@@ -1,11 +1,8 @@
 var mongoose = require('mongoose');
 var request = require('request');
-var httpsync = require('httpsync');
-var httpSync = require('http-sync');
-var config = require('./config')
-var fs = require('fs');
 var fpl = require('./fpl');
-
+var async = require('async');
+var _ = require('underscore');
 
 var PLAYER_DATA_URL = 'http://fantasy.premierleague.com/web/api/elements/';
 var FOOTIEVIZ_MONGO = 'mongodb://footiedb:FOOTIEd33b33@ds053438.mongolab.com:53438/fantasiefootie';
@@ -13,10 +10,8 @@ var FOOTIEVIZ_MONGO = 'mongodb://footiedb:FOOTIEd33b33@ds053438.mongolab.com:534
 console.log('Setting up Mongolab connection');
 mongoose.connect(FOOTIEVIZ_MONGO);
 var db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
+db.on('error', console.error.bind(console, 'DB connection error!'));
 db.once('open', function callback() {});
-
-
 
 var playerSchema = mongoose.Schema({
     _id: String,
@@ -79,27 +74,26 @@ var playerSchema = mongoose.Schema({
     team: Number,
     current_fixture_is_home: Boolean,
     current_fixture_team_id: Number,
-    created_at: Date
+    last_updated: Date
 }, {collection: 'Player'});
-
 var Player = mongoose.model('Player', playerSchema);
 
-player_id = 1;
-var totalInserted = fetchPlayerData(player_id, function(totalPlayers) {
-  console.log('Inserted: ' + totalPlayers);
+
+var totalPlayers = 0;
+
+fpl.getMaxPlayerId(function(id) {
+    totalPlayers = id;
 });
 
 
-function fetchPlayerData(player_id) {
+var playerIdsArray = _.range(1, totalPlayers);
+
+
+async.each(playerIdsArray, function(player_id, callback) {
   var playerUrl = PLAYER_DATA_URL + player_id + '/';
-  
 
   request(playerUrl, function(error, response, body) {
     console.log('Requesting data for: ' + player_id);
-    // Return when you hit the end of player IDs
-    if (response.statusCode == 400)
-      return player_id;
-
     if (!error && response.statusCode == 200) {
       
       var playerJson = JSON.parse(body);
@@ -110,8 +104,9 @@ function fetchPlayerData(player_id) {
       player.fixture_history.summary = playerJson.fixture_history.summary;
       player.fixture_history.all = playerJson.fixture_history.all;
       player.player_id = player_id;
+      player.last_updated = Date.now();
 
-      console.log('GOT DATA FOR : ' + player.player_id + '-' + player.web_name);
+      console.log('Received data for: ' + player.player_id + '-' + player.web_name);
       
       var query = { 'player_id': player.player_id };
 
@@ -121,12 +116,22 @@ function fetchPlayerData(player_id) {
           if (err)
             console.log('ERROR UPDATING : ' + player._id + ' err: ' + err);
           else {
-            console.log('UPDATED: ' + player.web_name);
-            fetchPlayerData(player_id + 1);
+            console.log('Updated record for: ' + player.web_name);
+            callback();
           }
       }); //Player.update()
     } // if 200 && no error
   }); //request
-}
-
+}, function(err) {
+ if( err ) {
+      // One of the iterations produced an error.
+      // All processing will now stop.
+      console.log('A player failed to process');
+    } else {
+      console.log('All players have been processed successfully');
+      db.close();
+      process.kill();
+    }
+}); // function(err) end of async.each
+ 
 
