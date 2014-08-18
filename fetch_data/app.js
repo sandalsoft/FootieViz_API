@@ -4,13 +4,23 @@ var fpl = require('./fpl');
 var async = require('async');
 var _ = require('underscore');
 
+var dbUser = 'footiedb';
+var dbPassword = process.env.FOOTIEVIZ_MONGO_PASSWORD
+var dbDatabase = 'fantasiefootie';
+
 var PLAYER_DATA_URL = 'http://fantasy.premierleague.com/web/api/elements/';
-var FOOTIEVIZ_MONGO = 'mongodb://footiedb:FOOTIEd33b33@ds053438.mongolab.com:53438/fantasiefootie';
+var FOOTIEVIZ_MONGO = 'mongodb://' + dbUser + ':' + dbPassword + '@ds053438.mongolab.com:53438/' + dbDatabase;
 
 console.log('Setting up Mongolab connection');
+
 mongoose.connect(FOOTIEVIZ_MONGO);
 var db = mongoose.connection;
-db.on('error', console.error.bind(console, 'DB connection error!'));
+db.on('error', function(err) { 
+  console.error('DB Connection Error: ' + err); 
+  process.kill();    
+});
+
+
 db.once('open', function callback() {});
 
 var playerSchema = mongoose.Schema({
@@ -85,20 +95,29 @@ fpl.getMaxPlayerId(function(id) {
     totalPlayers = id;
 });
 
-
+// Create array of player IDs to loop through and grab data
 var playerIdsArray = _.range(1, totalPlayers);
 
-
+// Dispatch async workers to fetch data for each playerID in array
 async.each(playerIdsArray, function(player_id, callback) {
   var playerUrl = PLAYER_DATA_URL + player_id + '/';
 
+  // GET player JSON from premierleague.com API
   request(playerUrl, function(error, response, body) {
     console.log('Requesting data for: ' + player_id);
     if (!error && response.statusCode == 200) {
       
+      // Parse json into object
       var playerJson = JSON.parse(body);
+      console.log('Received data for: ' + playerJson.id + '-' + playerJson.web_name);
+
+      // create Player model from schema
       var Player = mongoose.model('Player', playerSchema);
+
+      // Instantiace concrete player with data from API
       var player = new Player(playerJson);
+
+      // create embedded data in player record
       player.fixtures.summary = playerJson.fixtures.summary;
       player.fixtures.all = playerJson.fixtures.all;
       player.fixture_history.summary = playerJson.fixture_history.summary;
@@ -106,14 +125,14 @@ async.each(playerIdsArray, function(player_id, callback) {
       player.player_id = player_id;
       player.last_updated = Date.now();
 
-      console.log('Received data for: ' + player.player_id + '-' + player.web_name);
-      
+      // Query to find player by player_id so we can update it
       var query = { 'player_id': player.player_id };
 
-      // Update Player stats and recurse if no error
+      // Update Player record with data from API
       Player.update({player_id: player_id}, player.toObject(), {upsert: true}, 
         function(err, doc) {
           if (err)
+            // log error if can't write data to database
             console.log('ERROR UPDATING : ' + player._id + ' err: ' + err);
           else {
             console.log('Updated record for: ' + player.web_name);
@@ -124,10 +143,10 @@ async.each(playerIdsArray, function(player_id, callback) {
   }); //request
 }, function(err) {
  if( err ) {
-      // One of the iterations produced an error.
-      // All processing will now stop.
+      // One of the iterations produced an error.  All processing will now stop.
       console.log('A player failed to process');
     } else {
+      // No errors.  Processing done.  Close db and end process
       console.log('All players have been processed successfully');
       db.close();
       process.kill();
