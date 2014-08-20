@@ -2,5 +2,5 @@
   "restApiRoot": "/api",
   "host": "178.62.54.230",
   "port": 45678,
-  "url": "http://api.sndl.io:80/"
+  "url": "http://api.sndl.io:45678/"
 }
